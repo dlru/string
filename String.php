@@ -95,7 +95,7 @@ class String implements \Iterator, \ArrayAccess {
      */
     public function __construct($string, $encoding='UTF-8') {
         static $mb_extension_checked = false;
-        if ($mb_extension_checked == false) {
+        if ($mb_extension_checked === false) {
             if (!extension_loaded('mbstring')) {
                 throw new String\Exception( // Расширение не найдено ...
                     'Multibyte string functions extension was not loaded'
@@ -116,7 +116,7 @@ class String implements \Iterator, \ArrayAccess {
      * @return string
      */
     public function __toString() {
-        return $this->_string;
+        return $this->value();
     }
 
 
@@ -194,16 +194,29 @@ class String implements \Iterator, \ArrayAccess {
      * Возвращает часть строки
      *
      * @param int $start Позиция символа, с которой выделяется подстрока
-     * @param int|null $length Максимальное количество символов возвращаемой подстроки
+     * @param int $length Максимальное количество символов возвращаемой подстроки
      * @return string
      */
+    private function _substring($start, $length) {
+        return mb_substr($this->_string, $start, $length, $this->_encoding);
+    }
+
+
+
+    /**
+     * Возвращает часть строки
+     *
+     * @param int $start Позиция символа, с которой выделяется подстрока
+     * @param int|null $length Максимальное количество символов возвращаемой подстроки
+     * @return \DL\Main\String
+     */
     public function substr($start, $length=null) {
-        return mb_substr(
-            $this->_string, $start,
-            // Длинна не передана - возвращаем до конца строки!
-            is_null($length) ? $this->length() - $start : $length,
-            $this->_encoding
-        );
+        $length = is_null($length) // Возвращаемая длинна не передана?
+            ? $this->length() - $start // Тогда вернем до конца строки
+            : intval($length);
+        $this->_string = $this->_substring($start, $length);
+        $this->_length = $this->_size = null;
+        return $this;
     }
 
 
@@ -215,7 +228,7 @@ class String implements \Iterator, \ArrayAccess {
      * @return string
      */
     public function char($index) {
-        return $this->substr($index, 1);
+        return $this->_substring($index, 1);
     }
 
 
@@ -229,6 +242,22 @@ class String implements \Iterator, \ArrayAccess {
     public function append($char) {
         $this->length(); // Дернем, чтобы посчиталась длинна
         $this->_string .= $this->_cast_char($char); // Добавим
+        $this->_length++; // Увеличим длинну строки на единичку
+        $this->_size = null; // Не знаем сколько байт в символе
+        return $this;
+    }
+
+
+
+    /**
+     * Добавляет символ в начало
+     *
+     * @param string $char Символ
+     * @return \DL\Main\String
+     */
+    public function prepend($char) {
+        $this->length(); // Дернем, чтобы посчиталась длинна
+        $this->_string = $this->_cast_char($char) . $this->_string;
         $this->_length++; // Увеличим длинну строки на единичку
         $this->_size = null; // Не знаем сколько байт в символе
         return $this;
@@ -257,10 +286,11 @@ class String implements \Iterator, \ArrayAccess {
     /**
      * Возвращает строку, преобразованную в верхний регистр
      *
-     * @return string
+     * @return \DL\Main\String
      */
     public function upper() {
-        return mb_strtoupper($this->_string, $this->_encoding);
+        $this->_string = mb_strtoupper($this->_string, $this->_encoding);
+        return $this;
     }
 
 
@@ -268,10 +298,11 @@ class String implements \Iterator, \ArrayAccess {
     /**
      * Возвращает строку, преобразованную в нижний регистр
      *
-     * @return string
+     * @return \DL\Main\String
      */
     public function lower() {
-        return mb_strtolower($this->_string, $this->_encoding);
+        $this->_string = mb_strtolower($this->_string, $this->_encoding);
+        return $this;
     }
 
 
@@ -279,10 +310,11 @@ class String implements \Iterator, \ArrayAccess {
     /**
      * Возвращает строку, в которой первый символ каждого слова преобразован в верхний регистр
      *
-     * @return string
+     * @return \DL\Main\String
      */
     public function ucWords() {
-        return mb_convert_case($this->_string, MB_CASE_TITLE, $this->_encoding);
+        $this->_string = mb_convert_case($this->_string, MB_CASE_TITLE, $this->_encoding);
+        return $this;
     }
 
 
@@ -290,15 +322,13 @@ class String implements \Iterator, \ArrayAccess {
     /**
      * Возвращает строку, в которой первый символ преобразован в верхний регистр
      *
-     * @return string
+     * @return \DL\Main\String
      */
     public function ucFirst() {
-        $result = ''; // Результат пока пуст
         if ($this->length() > 0) { // Только если строка не пустая! :)
-            $result .= mb_strtoupper($this->char(0), $this->_encoding);
-            $result .= $this->substr(1);
+            $this->_set_char(0, mb_strtoupper($this->char(0), $this->_encoding));
         }
-        return $result;
+        return $this;
     }
 
 
@@ -349,8 +379,8 @@ class String implements \Iterator, \ArrayAccess {
         $char = $this->_cast_char($char);
         $index = $this->_cast_index($index);
         // Теперь можно составить строку из трех кусочков
-        $this->_string = $this->substr(0, $index) . $char
-            . $this->substr($index + 1, $this->length() - ($index + 1));
+        $this->_string = $this->_substring(0, $index) . $char
+            . $this->_substring($index + 1, $this->length() - ($index + 1));
         // Мы не знаем какой символ был записан. А вдруг однобайтовый?
         $this->_size = null; // Сбросим размер строки на всякий случай
     }
@@ -364,10 +394,10 @@ class String implements \Iterator, \ArrayAccess {
      */
     private function _unset_char($index) {
         $index = $this->_cast_index($index);
-        $this->_string = $this->substr(0, $index)
-            . $this->substr($index + 1, $this->length() - ($index + 1));
+        $this->_string = $this->_substring(0, $index)
+            . $this->_substring($index + 1, $this->length() - ($index + 1));
         $this->_length--; // Укоротим длинну, мы удалили один символ
-        $this->_size = null; // Сбросим размер
+        $this->_size = null; // Сбросим размер строки на всякий случай
     }
 
 
