@@ -1,7 +1,81 @@
-string
+Multibyte string object representation
 ======
 
-Multibyte string object representation
+## Usage
+
+`namespace DL\Main;`
+
+### Construction and basic usage
+
+	$so = new String('string', 'ascii'); // String and encoding
+	$so = new String('строка'); // UTF-8 is default encoding
+	echo $so->value(); // "строка"
+	echo $so; // Also "строка"
+
+### Length and size (bytes)
+
+	$so = new String('строка');
+	echo $so->length(); // 6 (characters)
+	echo $so->size(); // 12 (bytes)
+
+### Append and prepeng
+
+	$so = new String('строка');
+	echo $so->append('@'); // "строка@"
+	echo $so->prepend('#'); // "#строка@"
+	echo $so->size(); // 14 (bytes) Understand? :)
+
+### Character access
+
+	$so = new String('строка');
+	echo $so->char(0); // "c"
+	echo $so->char(4); // "к"
+	echo $so->char(-2); // Also "к" :)
+
+### Substings
+
+	$so = new String('строка'); echo $so->substr(1, 2); // "тр"
+	$so = new String('строка'); echo $so->substr(2, -1); // "рок"
+	$so = new String('строка'); echo $so->substr(1); // "трока"
+
+### Case manipulation
+
+	$so = new String('Это строка');
+	echo $so->upper(); // "ЭТО СТРОКА!"
+	echo $so->lower(); // "это строка!"
+	echo $so->ucWords(); // "Это Строка!"
+	echo $so->lower()->ucFirst(); // "Это строка"
+
+### In "foreach"
+
+	$result = '';
+	$so = new String('строка');
+	foreach ($so as $key => $char) {
+	    $result .= $char . ':' . $key .'-';
+	}
+	echo $result; // "с:0-т:1-р:2-о:3-к:4-а:5-"
+
+### Array access
+
+	$so = new String('строка');
+	$so[] = '!'; echo $so; // "строка!"
+	unset($so[1]); echo $so; // "срока!"
+	$so[2] = 'а'; echo $so; // "срака!" Just an example :)
+
+### Spaghetti
+
+	$so = new String('Строка!');
+	echo $so->upper()->substr(3, -2); // "ОК"
+	echo $so->lower()->ucFirst(); // "Ок"
+	echo $so->append('!'); // "Ок!"
+	echo $so->concat(' да?')->lower()->ucWords(); // "Ок! Да?"
+
+### Miscellaneous
+
+	$so = new String('Строка!');
+	echo $so->convert('Windows-1251'); // Windows-1251 encoded $so's
+	echo $so->encoding(); // Now returns "Windows-1251"
+	$so->convert('UTF-8'); // Rollback string to UTF-8
 
 ## Copyright and license
 
