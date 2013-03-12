@@ -18,7 +18,7 @@ Multibyte string object representation
 	echo $so->length(); // 6 (characters)
 	echo $so->size(); // 12 (bytes)
 
-### Append and prepeng
+### Append and prepend
 
 	$so = new String('строка');
 	echo $so->append('@'); // "строка@"
